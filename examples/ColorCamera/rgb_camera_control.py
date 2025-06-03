@@ -40,6 +40,7 @@ import depthai as dai
 import cv2
 from itertools import cycle
 
+cont = 0
 # Step size ('W','A','S','D' controls)
 STEP_SIZE = 8
 # Manual exposure/focus/white-balance set step
@@ -48,8 +49,10 @@ ISO_STEP = 50
 LENS_STEP = 3
 WB_STEP = 200
 
+
 def clamp(num, v0, v1):
     return max(v0, min(num, v1))
+
 
 # Create pipeline
 pipeline = dai.Pipeline()
@@ -57,7 +60,7 @@ pipeline = dai.Pipeline()
 # Define sources and outputs
 camRgb = pipeline.create(dai.node.ColorCamera)
 camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
-camRgb.setIspScale(2,3) # 1080P -> 720P
+camRgb.setIspScale(2, 3)  # 1080P -> 720P
 stillEncoder = pipeline.create(dai.node.VideoEncoder)
 
 controlIn = pipeline.create(dai.node.XLinkIn)
@@ -73,8 +76,9 @@ videoOut.setStreamName('video')
 stillMjpegOut.setStreamName('still')
 
 # Properties
-camRgb.setVideoSize(640,360)
-stillEncoder.setDefaultProfilePreset(1, dai.VideoEncoderProperties.Profile.MJPEG)
+camRgb.setVideoSize(640, 360)
+stillEncoder.setDefaultProfilePreset(
+    1, dai.VideoEncoderProperties.Profile.MJPEG)
 
 # Linking
 camRgb.isp.link(ispOut.input)
@@ -95,8 +99,10 @@ with dai.Device(pipeline) as device:
     stillQueue = device.getOutputQueue('still')
 
     # Max cropX & cropY
-    maxCropX = (camRgb.getIspWidth() - camRgb.getVideoWidth()) / camRgb.getIspWidth()
-    maxCropY = (camRgb.getIspHeight() - camRgb.getVideoHeight()) / camRgb.getIspHeight()
+    maxCropX = (camRgb.getIspWidth() - camRgb.getVideoWidth()) / \
+        camRgb.getIspWidth()
+    maxCropY = (camRgb.getIspHeight() - camRgb.getVideoHeight()) / \
+        camRgb.getIspHeight()
     print(maxCropX, maxCropY, camRgb.getIspWidth(), camRgb.getVideoHeight())
 
     # Default crop
@@ -107,7 +113,7 @@ with dai.Device(pipeline) as device:
     # Defaults and limits for manual focus/exposure controls
     lensPos = 150
     expTime = 20000
-    sensIso = 800    
+    sensIso = 800
     wbManual = 4000
     ae_comp = 0
     ae_lock = False
@@ -121,9 +127,12 @@ with dai.Device(pipeline) as device:
     control = 'none'
     show = False
 
-    awb_mode = cycle([item for name, item in vars(dai.CameraControl.AutoWhiteBalanceMode).items() if name.isupper()])
-    anti_banding_mode = cycle([item for name, item in vars(dai.CameraControl.AntiBandingMode).items() if name.isupper()])
-    effect_mode = cycle([item for name, item in vars(dai.CameraControl.EffectMode).items() if name.isupper()])
+    awb_mode = cycle([item for name, item in vars(
+        dai.CameraControl.AutoWhiteBalanceMode).items() if name.isupper()])
+    anti_banding_mode = cycle([item for name, item in vars(
+        dai.CameraControl.AntiBandingMode).items() if name.isupper()])
+    effect_mode = cycle([item for name, item in vars(
+        dai.CameraControl.EffectMode).items() if name.isupper()])
 
     while True:
         vidFrames = videoQueue.tryGetAll()
@@ -154,6 +163,8 @@ with dai.Device(pipeline) as device:
             # Decode JPEG
             frame = cv2.imdecode(stillFrame.getData(), cv2.IMREAD_UNCHANGED)
             # Display
+            cont += 1
+            cv2.imwrite(f"still_image{cont}.jpg", frame)
             cv2.imshow('still', frame)
 
         # Update screen (1ms pooling rate)
@@ -162,7 +173,8 @@ with dai.Device(pipeline) as device:
             break
         elif key == ord('/'):
             show = not show
-            if not show: print("Printing camera settings: OFF")
+            if not show:
+                print("Printing camera settings: OFF")
         elif key == ord('c'):
             ctrl = dai.CameraControl()
             ctrl.setCaptureStill(True)
@@ -176,7 +188,8 @@ with dai.Device(pipeline) as device:
         elif key == ord('f'):
             print("Autofocus enable, continuous")
             ctrl = dai.CameraControl()
-            ctrl.setAutoFocusMode(dai.CameraControl.AutoFocusMode.CONTINUOUS_VIDEO)
+            ctrl.setAutoFocusMode(
+                dai.CameraControl.AutoFocusMode.CONTINUOUS_VIDEO)
             controlQueue.send(ctrl)
         elif key == ord('e'):
             print("Autoexposure enable")
@@ -186,21 +199,28 @@ with dai.Device(pipeline) as device:
         elif key == ord('b'):
             print("Auto white-balance enable")
             ctrl = dai.CameraControl()
-            ctrl.setAutoWhiteBalanceMode(dai.CameraControl.AutoWhiteBalanceMode.AUTO)
+            ctrl.setAutoWhiteBalanceMode(
+                dai.CameraControl.AutoWhiteBalanceMode.AUTO)
             controlQueue.send(ctrl)
         elif key in [ord(','), ord('.')]:
-            if key == ord(','): lensPos -= LENS_STEP
-            if key == ord('.'): lensPos += LENS_STEP
+            if key == ord(','):
+                lensPos -= LENS_STEP
+            if key == ord('.'):
+                lensPos += LENS_STEP
             lensPos = clamp(lensPos, 0, 255)
             print("Setting manual focus, lens position: ", lensPos)
             ctrl = dai.CameraControl()
             ctrl.setManualFocus(lensPos)
             controlQueue.send(ctrl)
         elif key in [ord('i'), ord('o'), ord('k'), ord('l')]:
-            if key == ord('i'): expTime -= EXP_STEP
-            if key == ord('o'): expTime += EXP_STEP
-            if key == ord('k'): sensIso -= ISO_STEP
-            if key == ord('l'): sensIso += ISO_STEP
+            if key == ord('i'):
+                expTime -= EXP_STEP
+            if key == ord('o'):
+                expTime += EXP_STEP
+            if key == ord('k'):
+                sensIso -= ISO_STEP
+            if key == ord('l'):
+                sensIso += ISO_STEP
             expTime = clamp(expTime, 1, 33000)
             sensIso = clamp(sensIso, 100, 1600)
             print("Setting manual exposure, time: ", expTime, "iso: ", sensIso)
@@ -208,8 +228,10 @@ with dai.Device(pipeline) as device:
             ctrl.setManualExposure(expTime, sensIso)
             controlQueue.send(ctrl)
         elif key in [ord('n'), ord('m')]:
-            if key == ord('n'): wbManual -= WB_STEP
-            if key == ord('m'): wbManual += WB_STEP
+            if key == ord('n'):
+                wbManual -= WB_STEP
+            if key == ord('m'):
+                wbManual += WB_STEP
             wbManual = clamp(wbManual, 1000, 12000)
             print("Setting manual white balance, temperature: ", wbManual, "K")
             ctrl = dai.CameraControl()
@@ -217,17 +239,25 @@ with dai.Device(pipeline) as device:
             controlQueue.send(ctrl)
         elif key in [ord('w'), ord('a'), ord('s'), ord('d')]:
             if key == ord('a'):
-                cropX = cropX - (maxCropX / camRgb.getResolutionWidth()) * STEP_SIZE
-                if cropX < 0: cropX = 0
+                cropX = cropX - \
+                    (maxCropX / camRgb.getResolutionWidth()) * STEP_SIZE
+                if cropX < 0:
+                    cropX = 0
             elif key == ord('d'):
-                cropX = cropX + (maxCropX / camRgb.getResolutionWidth()) * STEP_SIZE
-                if cropX > maxCropX: cropX = maxCropX
+                cropX = cropX + \
+                    (maxCropX / camRgb.getResolutionWidth()) * STEP_SIZE
+                if cropX > maxCropX:
+                    cropX = maxCropX
             elif key == ord('w'):
-                cropY = cropY - (maxCropY / camRgb.getResolutionHeight()) * STEP_SIZE
-                if cropY < 0: cropY = 0
+                cropY = cropY - \
+                    (maxCropY / camRgb.getResolutionHeight()) * STEP_SIZE
+                if cropY < 0:
+                    cropY = 0
             elif key == ord('s'):
-                cropY = cropY + (maxCropY / camRgb.getResolutionHeight()) * STEP_SIZE
-                if cropY > maxCropY: cropY = maxCropY
+                cropY = cropY + \
+                    (maxCropY / camRgb.getResolutionHeight()) * STEP_SIZE
+                if cropY > maxCropY:
+                    cropY = maxCropY
             sendCamConfig = True
         elif key == ord('1'):
             awb_lock = not awb_lock
@@ -242,21 +272,33 @@ with dai.Device(pipeline) as device:
             ctrl.setAutoExposureLock(ae_lock)
             controlQueue.send(ctrl)
         elif key >= 0 and chr(key) in '34567890[]':
-            if   key == ord('3'): control = 'awb_mode'
-            elif key == ord('4'): control = 'ae_comp'
-            elif key == ord('5'): control = 'anti_banding_mode'
-            elif key == ord('6'): control = 'effect_mode'
-            elif key == ord('7'): control = 'brightness'
-            elif key == ord('8'): control = 'contrast'
-            elif key == ord('9'): control = 'saturation'
-            elif key == ord('0'): control = 'sharpness'
-            elif key == ord('['): control = 'luma_denoise'
-            elif key == ord(']'): control = 'chroma_denoise'
+            if key == ord('3'):
+                control = 'awb_mode'
+            elif key == ord('4'):
+                control = 'ae_comp'
+            elif key == ord('5'):
+                control = 'anti_banding_mode'
+            elif key == ord('6'):
+                control = 'effect_mode'
+            elif key == ord('7'):
+                control = 'brightness'
+            elif key == ord('8'):
+                control = 'contrast'
+            elif key == ord('9'):
+                control = 'saturation'
+            elif key == ord('0'):
+                control = 'sharpness'
+            elif key == ord('['):
+                control = 'luma_denoise'
+            elif key == ord(']'):
+                control = 'chroma_denoise'
             print("Selected control:", control)
         elif key in [ord('-'), ord('_'), ord('+'), ord('=')]:
             change = 0
-            if key in [ord('-'), ord('_')]: change = -1
-            if key in [ord('+'), ord('=')]: change = 1
+            if key in [ord('-'), ord('_')]:
+                change = -1
+            if key in [ord('+'), ord('=')]:
+                change = 1
             ctrl = dai.CameraControl()
             if control == 'none':
                 print("Please select a control first using keys 3..9 0 [ ]")
