@@ -76,7 +76,7 @@ videoOut.setStreamName('video')
 stillMjpegOut.setStreamName('still')
 
 # Properties
-camRgb.setVideoSize(640, 360)
+camRgb.setVideoSize(640, 640)
 stillEncoder.setDefaultProfilePreset(
     1, dai.VideoEncoderProperties.Profile.MJPEG)
 
