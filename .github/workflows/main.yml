@@ -322,7 +322,7 @@ jobs:
         run: yum install -y --disableplugin=fastestmirror libusb1-devel perl-core
       - name: Installing cmake dependency
         run: |
-          /opt/python/cp38-cp38/bin/python3.8 -m pip install cmake==3.29
+          /opt/python/cp38-cp38/bin/python3.8 -m pip install "cmake<4.0"
           ln -s /opt/python/cp38-cp38/bin/cmake /bin/
       - name: Create folder structure
         run: mkdir -p wheelhouse/audited/
@@ -384,7 +384,7 @@ jobs:
         run: yum install -y --disableplugin=fastestmirror libusb1-devel perl-core
       - name: Installing cmake dependency
         run: |
-          /opt/python/cp38-cp38/bin/python3.8 -m pip install cmake==3.29
+          /opt/python/cp38-cp38/bin/python3.8 -m pip install "cmake<4"
           ln -s /opt/python/cp38-cp38/bin/cmake /bin/
       - name: Create folder structure
         run: mkdir -p wheelhouse/audited/
