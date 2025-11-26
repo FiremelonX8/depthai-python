@@ -13,13 +13,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, [Linux, ARM], [Linux, ARM64]]
+        os: [ubuntu-latest, [Linux, ARM], ubuntu-24.04-arm]
         include:
           - os: ubuntu-latest
             arch: amd64
           - os: [Linux, ARM]
             arch: armv7
-          - os: [Linux, ARM64]
+          - os: ubuntu-24.04-arm
             arch: armv8
     steps:
       - name: Clean the workspace
