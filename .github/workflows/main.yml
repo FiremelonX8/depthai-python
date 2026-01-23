@@ -246,7 +246,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.9, '3.10', '3.11', '3.12', '3.13', '3.14']
-        os: [macos-13, macos-14] # macos-13 is x64, macos-14 is arm64
+        os: [macos-14] # macos-14 is arm64 (macos-15-intel could be added later, once compilation on clang that on that image is fixed))
     runs-on: ${{ matrix.os }}
     steps:
       - name: Cache .hunter folder
